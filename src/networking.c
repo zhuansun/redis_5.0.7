@@ -1399,7 +1399,8 @@ int processMultibulkBuffer(client *c) {
                 c->bulklen >= PROTO_MBULK_BIG_ARG &&
                 sdslen(c->querybuf) == (size_t)(c->bulklen+2))
             {
-                //请求处理-解析命令-4：createObject：开始创建RedisObject，对用户输入的命令分别创建RedisObejct
+                //请求处理-解析命令-6：createObject：开始创建RedisObject，对用户输入的命令分别创建RedisObejct
+                //请求处理-解析命令-9：创建完成之后返回redisObject，将redisObject放在client中的argv属性中
                 c->argv[c->argc++] = createObject(OBJ_STRING,c->querybuf);
                 sdsIncrLen(c->querybuf,-2); /* remove CRLF */
                 /* Assume that if we saw a fat argument we'll see another one
@@ -1407,7 +1408,8 @@ int processMultibulkBuffer(client *c) {
                 c->querybuf = sdsnewlen(SDS_NOINIT,c->bulklen+2);
                 sdsclear(c->querybuf);
             } else {
-                //请求处理-解析命令-4：createStringObject：开始创建RedisObject，对用户输入的命令分别创建RedisObejct
+                //请求处理-解析命令-6：createStringObject：开始创建RedisObject，对用户输入的命令分别创建RedisObejct
+                //请求处理-解析命令-9：创建完成之后返回redisObject，将redisObject放在client中的argv属性中
                 c->argv[c->argc++] =
                     createStringObject(c->querybuf+c->qb_pos,c->bulklen);
                 c->qb_pos += c->bulklen+2;
@@ -1480,7 +1482,7 @@ void processInputBuffer(client *c) {
             resetClient(c);
         } else {
             /* Only reset the client when the command was executed. */
-            //请求处理-开始处理-1：转换完成redisObject之后，开始processCommand，执行命令
+            //请求处理-执行命令-1：转换完成redisObject之后，开始processCommand，执行命令
             if (processCommand(c) == C_OK) {
                 if (c->flags & CLIENT_MASTER && !(c->flags & CLIENT_MULTI)) {
                     /* Update the applied replication offset of our master. */

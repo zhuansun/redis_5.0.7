@@ -124,6 +124,9 @@ volatile unsigned long lru_clock; /* Server global current LRU time. */
  *    Note that commands that may trigger a DEL as a side effect (like SET)
  *    are not fast commands.
  */
+//请求处理-执行命令-3：怎么找的命令
+//server在初始化的时候，初始化了一个：redisCommandTable；通过这个table找的
+//比如通过"set"可以找到对应的命令是：setCommand，然后就可以去执行setCommand了
 struct redisCommand redisCommandTable[] = {
     {"module",moduleCommand,-2,"as",0,NULL,0,0,0,0,0},
     {"get",getCommand,2,"rF",0,NULL,1,1,1,0,0},
@@ -2469,7 +2472,7 @@ void call(client *c, int flags) {
     dirty = server.dirty;
     updateCachedTime(0);
     start = server.ustime;
-    //这里开始处理了。
+    //请求处理-执行命令-5：这里开始处理了
     c->cmd->proc(c);
     duration = ustime()-start;
     dirty = server.dirty-dirty;
@@ -2592,7 +2595,9 @@ int processCommand(client *c) {
 
     /* Now lookup the command and check ASAP about trivial error conditions
      * such as wrong arity, bad command name and so forth. */
-    //通过命令argv[0] 去找command
+    //请求处理-执行命令-2：通过命令argv[0] 去找command，怎么找到
+    //是通过：server在初始化的时候，初始化了一个：redisCommandTable；通过这个table找的
+    //比如通过"set"可以找到对应的命令是：setCommand，然后就可以去执行setCommand了
     c->cmd = c->lastcmd = lookupCommand(c->argv[0]->ptr);
     if (!c->cmd) {
         flagTransaction(c);
@@ -2766,7 +2771,7 @@ int processCommand(client *c) {
         queueMultiCommand(c);
         addReply(c,shared.queued);
     } else {
-        //这里开始真正的调用command
+        //请求处理-执行命令-4：这里开始真正的调用command
         call(c,CMD_CALL_FULL);
         c->woff = server.master_repl_offset;
         if (listLength(server.ready_keys))

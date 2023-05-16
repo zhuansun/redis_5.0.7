@@ -37,9 +37,11 @@
 #endif
 
 /* ===================== Creation and parsing of objects ==================== */
-
+/*请求处理-解析命令-8：开始创建RedisObject*/
 robj *createObject(int type, void *ptr) {
+    /*为redisObject初始化空间*/
     robj *o = zmalloc(sizeof(*o));
+    //初始化空间完成之后，为redisObject的属性赋值，相当于实例化redisObject
     o->type = type;
     o->encoding = OBJ_ENCODING_RAW;
     o->ptr = ptr;
@@ -428,6 +430,7 @@ void trimStringObjectIfNeeded(robj *o) {
 }
 
 /* Try to encode a string object in order to save space */
+//尝试变更redisObject的编码
 robj *tryObjectEncoding(robj *o) {
     long value;
     sds s = o->ptr;

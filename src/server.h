@@ -614,6 +614,7 @@ typedef struct RedisModuleDigest {
 #define OBJ_SHARED_REFCOUNT INT_MAX
 
 //请求处理-读取Socket-3：redisOBject的定义，在Redis中，命令，key，value等等都会被封装成 RedisObject
+//请求处理-解析命令-7：redisObject的结构
 typedef struct redisObject {
     unsigned type:4;
     unsigned encoding:4;

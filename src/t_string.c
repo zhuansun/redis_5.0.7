@@ -64,6 +64,7 @@ static int checkStringLength(client *c, long long size) {
 #define OBJ_SET_EX (1<<2)     /* Set if time in seconds is given */
 #define OBJ_SET_PX (1<<3)     /* Set if time in ms in given */
 
+//命令处理-4
 void setGenericCommand(client *c, int flags, robj *key, robj *val, robj *expire, int unit, robj *ok_reply, robj *abort_reply) {
     long long milliseconds = 0; /* initialized to avoid any harmness warning */
 
@@ -83,6 +84,7 @@ void setGenericCommand(client *c, int flags, robj *key, robj *val, robj *expire,
         addReply(c, abort_reply ? abort_reply : shared.nullbulk);
         return;
     }
+    //命令处理-5
     setKey(c->db,key,val);
     server.dirty++;
     if (expire) setExpire(c,c->db,key,mstime()+milliseconds);
@@ -93,6 +95,7 @@ void setGenericCommand(client *c, int flags, robj *key, robj *val, robj *expire,
 }
 
 /* SET key value [NX] [XX] [EX <seconds>] [PX <milliseconds>] */
+//请求处理-执行命令-6：因为是string类型的，所以就会执行到string的setCommand中
 void setCommand(client *c) {
     int j;
     robj *expire = NULL;
@@ -135,7 +138,10 @@ void setCommand(client *c) {
         }
     }
 
+    //对value进行编码修正，目的是为了优化redis存储
+    //命令处理-2
     c->argv[2] = tryObjectEncoding(c->argv[2]);
+    //命令处理-3
     setGenericCommand(c,flags,c->argv[1],c->argv[2],expire,unit,NULL,NULL);
 }
 
