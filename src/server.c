@@ -1689,6 +1689,7 @@ void initServerConfig(void) {
     server.master_repl_offset = 0;
 
     /* Replication partial resync backlog */
+    //REPLICATION-4：主从同步的配置，back_log的大小默认是1MB
     server.repl_backlog = NULL;
     server.repl_backlog_size = CONFIG_DEFAULT_REPL_BACKLOG_SIZE;
     server.repl_backlog_histlen = 0;
@@ -2350,8 +2351,10 @@ void propagate(struct redisCommand *cmd, int dbid, robj **argv, int argc,
                int flags)
 {
     if (server.aof_state != AOF_OFF && flags & PROPAGATE_AOF)
+        //AOF
         feedAppendOnlyFile(cmd,dbid,argv,argc);
     if (flags & PROPAGATE_REPL)
+        //REPLICATION
         replicationFeedSlaves(server.slaves,dbid,argv,argc);
 }
 
@@ -2538,6 +2541,7 @@ void call(client *c, int flags) {
          * propagation is needed. Note that modules commands handle replication
          * in an explicit way, so we never replicate them automatically. */
         if (propagate_flags != PROPAGATE_NONE && !(c->cmd->flags & CMD_MODULE))
+            //AOF-REPLICATION-1：当命令执行完之后，执行记日志和主从同步
             propagate(c->cmd,c->db->id,c->argv,c->argc,propagate_flags);
     }
 

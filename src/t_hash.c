@@ -46,6 +46,7 @@ void hashTypeTryConversion(robj *o, robj **argv, int start, int end) {
         if (sdsEncodedObject(argv[i]) &&
             sdslen(argv[i]->ptr) > server.hash_max_ziplist_value)
         {
+            //将ziplist 转成 hash表
             hashTypeConvert(o, OBJ_ENCODING_HT);
             break;
         }
@@ -553,6 +554,7 @@ void hsetCommand(client *c) {
     hashTypeTryConversion(o,c->argv,2,c->argc-1);
 
     for (i = 2; i < c->argc; i += 2)
+        //在for循环里，设置 filed -value
         created += !hashTypeSet(o,c->argv[i]->ptr,c->argv[i+1]->ptr,HASH_SET_COPY);
 
     /* HMSET (deprecated) and HSET return value is different. */

@@ -124,6 +124,7 @@ void freeReplicationBacklog(void) {
  * This function also increments the global replication offset stored at
  * server.master_repl_offset, because there is no case where we want to feed
  * the backlog without incrementing the offset. */
+//REPLICATION-6：由于back_log是一个环形的，这里判断如果环形的写满了，就从头重新写
 void feedReplicationBacklog(void *ptr, size_t len) {
     unsigned char *p = ptr;
 
@@ -151,6 +152,7 @@ void feedReplicationBacklog(void *ptr, size_t len) {
 
 /* Wrapper for feedReplicationBacklog() that takes Redis string objects
  * as input. */
+//REPLICATION-5：
 void feedReplicationBacklogWithObject(robj *o) {
     char llstr[LONG_STR_SIZE];
     void *p;
@@ -171,6 +173,7 @@ void feedReplicationBacklogWithObject(robj *o) {
  * the commands received by our clients in order to create the replication
  * stream. Instead if the instance is a slave and has sub-slaves attached,
  * we use replicationFeedSlavesFromMaster() */
+//REPLICATION-2：开始主从同步
 void replicationFeedSlaves(list *slaves, int dictid, robj **argv, int argc) {
     listNode *ln;
     listIter li;
@@ -209,6 +212,7 @@ void replicationFeedSlaves(list *slaves, int dictid, robj **argv, int argc) {
         }
 
         /* Add the SELECT command into the backlog. */
+        //REPLICATION-3:backlog是1MB，用于实现增量的主从同步
         if (server.repl_backlog) feedReplicationBacklogWithObject(selectcmd);
 
         /* Send it to slaves. */
@@ -225,6 +229,7 @@ void replicationFeedSlaves(list *slaves, int dictid, robj **argv, int argc) {
     server.slaveseldb = dictid;
 
     /* Write the command to the replication backlog if any. */
+    //REPLICATION-7：构建主从同步的command命令
     if (server.repl_backlog) {
         char aux[LONG_STR_SIZE+3];
 
@@ -252,6 +257,7 @@ void replicationFeedSlaves(list *slaves, int dictid, robj **argv, int argc) {
     }
 
     /* Write the command to every slave. */
+    //REPLICATION-8：开始写
     listRewind(slaves,&li);
     while((ln = listNext(&li))) {
         client *slave = ln->value;
@@ -1907,6 +1913,7 @@ write_error: /* Handle sendSynchronousCommand(SYNC_CMD_WRITE) errors. */
     goto error;
 }
 
+//主从关系构建-5：构建connection 对象
 int connectWithMaster(void) {
     int fd;
 
@@ -1928,6 +1935,7 @@ int connectWithMaster(void) {
 
     server.repl_transfer_lastio = server.unixtime;
     server.repl_transfer_s = fd;
+    //主从关系构建-6：状态变成CONNECTING
     server.repl_state = REPL_STATE_CONNECTING;
     return C_OK;
 }
@@ -2000,6 +2008,7 @@ void replicationSetMaster(char *ip, int port) {
         replicationDiscardCachedMaster();
         replicationCacheMasterUsingMyself();
     }
+    //主从关系构建-4：对当前slave赋值位 CONNECT
     server.repl_state = REPL_STATE_CONNECT;
 }
 
@@ -2047,6 +2056,7 @@ void replicationHandleMasterDisconnection(void) {
      * the slaves only if we'll have to do a full resync with our master. */
 }
 
+//主从关系构建-1：执行 salve of 的时候，就会执行到这个方法中来
 void replicaofCommand(client *c) {
     /* SLAVEOF is not allowed in cluster mode as replication is automatically
      * configured using the current address of the master node. */
@@ -2059,6 +2069,7 @@ void replicaofCommand(client *c) {
      * into a master. Otherwise the new master address is set. */
     if (!strcasecmp(c->argv[1]->ptr,"no") &&
         !strcasecmp(c->argv[2]->ptr,"one")) {
+            //主从关系构建-2：slave of no one
         if (server.masterhost) {
             replicationUnsetMaster();
             sds client = catClientInfoString(sdsempty(),c);
@@ -2090,6 +2101,7 @@ void replicaofCommand(client *c) {
         }
         /* There was no previous master or the user specified a different one,
          * we can continue. */
+        //主从关系构建-3：对当前slave设置master，只是set，不是connect
         replicationSetMaster(c->argv[1]->ptr, port);
         sds client = catClientInfoString(sdsempty(),c);
         serverLog(LL_NOTICE,"REPLICAOF %s:%d enabled (user request from '%s')",
@@ -2564,6 +2576,7 @@ long long replicationGetSlaveOffset(void) {
 /* --------------------------- REPLICATION CRON  ---------------------------- */
 
 /* Replication cron function, called 1 time per second. */
+//主从关系构建-7：定时执行连接，1s中执行一次
 void replicationCron(void) {
     static long long replication_cron_loops = 0;
 
@@ -2597,6 +2610,7 @@ void replicationCron(void) {
     if (server.repl_state == REPL_STATE_CONNECT) {
         serverLog(LL_NOTICE,"Connecting to MASTER %s:%d",
             server.masterhost, server.masterport);
+        //主从关系构建-7：这里开始创建连接master的connection对象
         if (connectWithMaster() == C_OK) {
             serverLog(LL_NOTICE,"MASTER <-> REPLICA sync started");
         }
